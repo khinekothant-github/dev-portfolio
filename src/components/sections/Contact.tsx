@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { submitContact } from "@/app/actions/contact";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 import { personalInfo } from "@/lib/data";
-import { fadeInUp, fadeInLeft, fadeInRight } from "@/lib/animations";
+import { fadeInLeft, fadeInRight } from "@/lib/animations";
 import {
   Mail,
   Phone,
@@ -30,17 +32,23 @@ export function Contact() {
     message: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Client-side only — open mailto
-    const subject = encodeURIComponent(`Portfolio Contact from ${formState.name}`);
-    const body = encodeURIComponent(
-      `Name: ${formState.name}\nEmail: ${formState.email}\n\n${formState.message}`
-    );
-    window.open(`mailto:${personalInfo.email}?subject=${subject}&body=${body}`);
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    const formData = new FormData(e.currentTarget);
+    
+    startTransition(async () => {
+      const result = await submitContact(formData);
+      if (result.success) {
+        toast.success(result.message);
+        setFormState({ name: "", email: "", message: "" });
+        setSubmitted(true);
+        setTimeout(() => setSubmitted(false), 3000);
+      } else {
+        toast.error(result.error);
+      }
+    });
   };
 
   const contactLinks = [
@@ -152,12 +160,21 @@ export function Contact() {
           >
             <div className="glass-card p-6">
               <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Honeypot field for spam protection */}
+              <input 
+                type="text" 
+                name="bot-field" 
+                className="hidden" 
+                tabIndex={-1} 
+                autoComplete="off" 
+              />
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-text-secondary mb-2">
                   Name
                 </label>
                 <input
                   id="name"
+                  name="name"
                   type="text"
                   required
                   value={formState.name}
@@ -175,6 +192,7 @@ export function Contact() {
                 </label>
                 <input
                   id="email"
+                  name="email"
                   type="email"
                   required
                   value={formState.email}
@@ -192,6 +210,7 @@ export function Contact() {
                 </label>
                 <textarea
                   id="message"
+                  name="message"
                   required
                   rows={5}
                   value={formState.message}
@@ -205,15 +224,20 @@ export function Contact() {
 
               <motion.button
                 type="submit"
-                className="w-full py-3.5 rounded-xl bg-primary text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-shadow"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                disabled={submitted}
+                className="w-full py-3.5 rounded-xl bg-primary text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                whileHover={!isPending && !submitted ? { scale: 1.02 } : {}}
+                whileTap={!isPending && !submitted ? { scale: 0.98 } : {}}
+                disabled={isPending || submitted}
               >
-                {submitted ? (
+                {isPending ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Sending...
+                  </>
+                ) : submitted ? (
                   <>
                     <CheckCircle2 className="w-5 h-5" />
-                    Message Prepared!
+                    Message Sent!
                   </>
                 ) : (
                   <>

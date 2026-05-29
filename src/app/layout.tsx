@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScroll";
 import { EasterEggProvider } from "@/components/providers/EasterEggProvider";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Khine Ko Thant — Software Developer Portfolio",
@@ -61,6 +62,7 @@ export default function RootLayout({
               {children}
             </SmoothScrollProvider>
           </EasterEggProvider>
+          <Toaster position="bottom-right" theme="dark" />
         </ThemeProvider>
       </body>
     </html>
